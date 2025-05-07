@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cast Your Vote - BlockVote</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding-top: 2rem;
+        }
+        .voting-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .election-info {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .candidate-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .candidate-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+        }
+        .candidate-card.selected {
+            border: 2px solid #0d6efd;
+            background: #f8f9fa;
+        }
+        .candidate-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 1rem;
+            border: 3px solid #eee;
+        }
+        .candidate-info {
+            padding: 1rem;
+        }
+        .candidate-party {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            background: #e9ecef;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+        .connection-status {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 0.5rem 1rem;
+            z-index: 1000;
+            text-align: center;
+        }
+        .back-button {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1000;
+        }
+        #confirmVoteBtn {
+            min-width: 200px;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        .loading-content {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status bg-info text-white">
+        Connecting to blockchain...
+    </div>
+
+    <!-- Back Button -->
+    <a href="voter_dashboard.html" class="btn btn-outline-primary back-button">
+        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+    </a>
+
+    <!-- Main Content -->
+    <div class="container voting-container">
+        <!-- Election Info -->
+        <div class="election-info">
+            <h2 id="electionTitle">Loading election...</h2>
+            <p id="electionDescription" class="text-muted mb-3"></p>
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Start:</strong> <span id="electionStart"></span></p>
+                    <p><strong>End:</strong> <span id="electionEnd"></span></p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p><strong>Status:</strong> <span id="electionStatus" class="badge bg-primary">Active</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Candidates Section -->
+        <h3 class="mb-4">Select a Candidate</h3>
+        <div class="row" id="candidatesList">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading candidates...</span>
+                </div>
+                <p class="text-muted mt-2">Loading candidates...</p>
+            </div>
+        </div>
+
+        <!-- Vote Button -->
+        <div class="text-center mt-4">
+            <button id="confirmVoteBtn" class="btn btn-primary btn-lg" disabled>
+                <i class="fas fa-vote-yea me-2"></i>Confirm Vote
+            </button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary mb-3" role="status">
+                <span class="visually-hidden">Processing vote...</span>
+            </div>
+            <h4>Processing Your Vote</h4>
+            <p class="text-muted">Please wait while we confirm your transaction...</p>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vote Cast Successfully!</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-check-circle text-success fa-4x mb-3"></i>
+                        <p>Your vote has been recorded on the blockchain.</p>
+                        <p class="text-muted small">Transaction Hash: <span id="txHash"></span></p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="window.location.href='voter_dashboard.html'">
+                        Return to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Error</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-circle text-danger fa-4x mb-3"></i>
+                        <p id="errorMessage">An error occurred while processing your vote.</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script>
+        let web3;
+        let contract;
+        let account;
+        let selectedCandidate = null;
+        let electionId;
+
+        // Check if voter is logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const voterInfo = JSON.parse(localStorage.getItem('voterInfo'));
+            if (!voterInfo) {
+                window.location.href = 'voter_login.html';
+                return;
+            }
+
+            electionId = localStorage.getItem('selectedElection');
+            if (!electionId) {
+                window.location.href = 'voter_dashboard.html';
+                return;
+            }
+
+            initializeWeb3();
+        });
+
+        // Initialize Web3
+        async function initializeWeb3() {
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                web3 = new Web3(window.ethereum);
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+
+                // Update connection status
+                document.getElementById('connectionStatus').className = 'connection-status bg-success text-white';
+                document.getElementById('connectionStatus').innerHTML = '<i class="fas fa-check-circle me-2"></i>Connected to blockchain';
+
+                // Initialize contract
+                const contractAddress = localStorage.getItem('votingContractAddress');
+                const response = await fetch('./build/contracts/Election.json');
+                const data = await response.json();
+                contract = new web3.eth.Contract(data.abi, contractAddress);
+
+                // Load election details and candidates
+                await loadElectionDetails();
+                await loadCandidates();
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('connectionStatus').className = 'connection-status bg-danger text-white';
+                document.getElementById('connectionStatus').innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${error.message}`;
+            }
+        }
+
+        // Load election details
+        async function loadElectionDetails() {
+            try {
+                const election = await contract.methods.getElection(electionId).call();
+                
+                document.getElementById('electionTitle').textContent = election.name;
+                document.getElementById('electionDescription').textContent = election.description;
+                document.getElementById('electionStart').textContent = new Date(election.startTime * 1000).toLocaleString();
+                document.getElementById('electionEnd').textContent = new Date(election.endTime * 1000).toLocaleString();
+
+                const now = new Date();
+                const startTime = new Date(election.startTime * 1000);
+                const endTime = new Date(election.endTime * 1000);
+
+                let status = '';
+                if (now < startTime) {
+                    status = '<span class="badge bg-warning">Upcoming</span>';
+                    document.getElementById('confirmVoteBtn').disabled = true;
+                    document.getElementById('confirmVoteBtn').title = 'Election has not started yet';
+                } else if (now > endTime) {
+                    status = '<span class="badge bg-secondary">Ended</span>';
+                    document.getElementById('confirmVoteBtn').disabled = true;
+                    document.getElementById('confirmVoteBtn').title = 'Election has ended';
+                } else {
+                    status = '<span class="badge bg-primary">Active</span>';
+                }
+
+                document.getElementById('electionStatus').outerHTML = status;
+
+            } catch (error) {
+                console.error('Error loading election details:', error);
+                showError('Error loading election details: ' + error.message);
+            }
+        }
+
+        // Load candidates
+        async function loadCandidates() {
+            try {
+                const election = await contract.methods.getElection(electionId).call();
+                const candidateCount = election.candidateCount;
+                const candidatesList = document.getElementById('candidatesList');
+                let html = '';
+
+                // Load each candidate individually
+                for (let i = 1; i <= candidateCount; i++) {
+                    try {
+                        const candidate = await contract.methods.getCandidate(electionId, i).call();
+                        if (candidate.name !== '') { // Check if candidate exists and is not deleted
+                            html += `
+                                <div class="col-md-6 mb-4">
+                                    <div class="candidate-card" onclick="selectCandidate(${i}, this)">
+                                        <div class="text-center">
+                                            <img src="https://via.placeholder.com/120/007bff/ffffff?text=${encodeURIComponent(candidate.name.charAt(0))}" 
+                                                 alt="${candidate.name}" 
+                                                 class="candidate-image">
+                                            <div class="candidate-info">
+                                                <h4 class="mb-2">${candidate.name}</h4>
+                                                <p class="text-muted mb-0">${candidate.description || 'No description available.'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    } catch (error) {
+                        console.error(`Error loading candidate ${i}:`, error);
+                    }
+                }
+
+                if (html === '') {
+                    html = `
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No candidates available for this election.
+                            </div>
+                        </div>
+                    `;
+                }
+
+                candidatesList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading candidates:', error);
+                showError('Error loading candidates: ' + error.message);
+            }
+        }
+
+        // Select candidate
+        function selectCandidate(candidateIndex, element) {
+            // Remove selection from all candidates
+            document.querySelectorAll('.candidate-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+
+            // Add selection to clicked candidate
+            element.classList.add('selected');
+            selectedCandidate = candidateIndex;
+
+            // Enable vote button
+            const confirmVoteBtn = document.getElementById('confirmVoteBtn');
+            confirmVoteBtn.disabled = false;
+            confirmVoteBtn.innerHTML = `
+                <i class="fas fa-vote-yea me-2"></i>Vote for ${document.querySelector('.candidate-card.selected h4').textContent}
+            `;
+        }
+
+        // Confirm vote button click handler
+        document.getElementById('confirmVoteBtn').addEventListener('click', async () => {
+            if (selectedCandidate === null) {
+                showError('Please select a candidate first');
+                return;
+            }
+
+            try {
+                // Show loading overlay
+                document.getElementById('loadingOverlay').style.display = 'flex';
+
+                // Cast vote
+                const result = await contract.methods.vote(electionId, selectedCandidate).send({
+                    from: account,
+                    gas: 200000
+                });
+
+                // Show success modal
+                document.getElementById('txHash').textContent = result.transactionHash;
+                new bootstrap.Modal(document.getElementById('successModal')).show();
+
+                // Disable vote button after successful vote
+                document.getElementById('confirmVoteBtn').disabled = true;
+
+            } catch (error) {
+                console.error('Voting error:', error);
+                showError(error.message);
+            } finally {
+                // Hide loading overlay
+                document.getElementById('loadingOverlay').style.display = 'none';
+            }
+        });
+
+        // Show error modal
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            new bootstrap.Modal(document.getElementById('errorModal')).show();
+        }
+    </script>
+</body>
+</html> 

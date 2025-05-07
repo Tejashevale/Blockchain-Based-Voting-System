@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Login - BlockVote</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 90%;
+        }
+        .metamask-btn {
+            background: #f6851b;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+        }
+        .metamask-btn:hover {
+            background: #e2761b;
+            transform: translateY(-2px);
+        }
+        .metamask-btn:disabled {
+            background: #ccc;
+            transform: none;
+            cursor: not-allowed;
+        }
+        .metamask-logo {
+            width: 24px;
+            height: 24px;
+        }
+        .status-message {
+            margin-top: 1rem;
+        }
+        .voter-id-input {
+            margin-bottom: 1rem;
+        }
+        .back-button {
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-button:hover {
+            color: #495057;
+        }
+        #debugInfo {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 0.8rem;
+            display: none;
+        }
+        .debug-toggle {
+            color: #6c757d;
+            text-decoration: none;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container position-relative">
+        <a href="index.html" class="back-button">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+        
+        <h2 class="text-center mb-4">Voter Login</h2>
+        <div class="text-center mb-4">
+            <i class="fas fa-user-circle fa-3x text-primary"></i>
+        </div>
+        <p class="text-center mb-4">Connect with MetaMask and enter your Voter ID to access the voting system</p>
+        
+        <div class="voter-id-input">
+            <input type="text" id="voterId" class="form-control" placeholder="Enter your Voter ID">
+        </div>
+        
+        <button id="connectWallet" class="metamask-btn">
+            <img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" 
+                 alt="MetaMask" class="metamask-logo">
+            Connect with MetaMask
+        </button>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <div id="debugInfo"></div>
+        <a class="debug-toggle" onclick="toggleDebug()">Show Debug Info</a>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Debug functions
+        function toggleDebug() {
+            const debugDiv = document.getElementById('debugInfo');
+            const toggle = document.querySelector('.debug-toggle');
+            if (debugDiv.style.display === 'none') {
+                debugDiv.style.display = 'block';
+                toggle.textContent = 'Hide Debug Info';
+                updateDebugInfo();
+            } else {
+                debugDiv.style.display = 'none';
+                toggle.textContent = 'Show Debug Info';
+            }
+        }
+
+        function updateDebugInfo() {
+            const debugDiv = document.getElementById('debugInfo');
+            if (debugDiv.style.display === 'block') {
+                debugDiv.innerHTML = `
+                    <div class="mb-2"><strong>Network ID:</strong> <span id="debugNetworkId">Checking...</span></div>
+                    <div class="mb-2"><strong>Connected Account:</strong> <span id="debugAccount">Not connected</span></div>
+                    <div class="mb-2"><strong>Contract Address:</strong> <span id="debugContract">Loading...</span></div>
+                    <div class="mb-2"><strong>Contract Status:</strong> <span id="debugContractStatus">Checking...</span></div>
+                `;
+            }
+        }
+
+        // Update debug info every 2 seconds
+        setInterval(() => {
+            if (document.getElementById('debugInfo').style.display === 'block') {
+                updateDebugInfo();
+            }
+        }, 2000);
+    </script>
+    <script src="js/config.js"></script>
+    <script src="js/voter_login.js"></script>
+</body>
+</html> 

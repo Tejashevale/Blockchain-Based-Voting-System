@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Dashboard - BlockVote</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+        }
+        .sidebar {
+            width: 250px;
+            min-height: 100vh;
+            background: white;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 100;
+        }
+        .sidebar .nav-link {
+            color: #333;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .sidebar .nav-link:hover,
+        .sidebar .nav-link.active {
+            background: #f0f2f5;
+            color: #0d6efd;
+        }
+        .sidebar .nav-link i {
+            width: 24px;
+            margin-right: 10px;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+            width: calc(100% - 250px);
+        }
+        .connection-status {
+            position: fixed;
+            top: 0;
+            left: 250px;
+            right: 0;
+            padding: 0.5rem 1rem;
+            z-index: 1000;
+            text-align: center;
+        }
+        .voter-info {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-top: 3rem;
+        }
+        .election-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 1rem;
+            transition: transform 0.2s;
+        }
+        .election-card:hover {
+            transform: translateY(-2px);
+        }
+        .election-card .card-header {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .election-card .card-body {
+            padding: 1.5rem;
+        }
+        #results-section {
+            display: none;
+        }
+        .results-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .progress {
+            height: 25px;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                min-height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .connection-status {
+                left: 0;
+            }
+        }
+        .results-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .progress {
+            background-color: #e9ecef;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            transition: width 0.6s ease;
+            text-align: center;
+            line-height: 25px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="p-3 text-center">
+            <i class="fas fa-user-circle fa-3x mb-2"></i>
+            <h6 id="voterName" class="mb-3">Loading...</h6>
+        </div>
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" id="viewElections">
+                    <i class="fas fa-vote-yea"></i>
+                    Available Elections
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" id="viewResults">
+                    <i class="fas fa-chart-bar"></i>
+                    View Results
+                </a>
+            </li>
+            <li class="nav-item mt-3">
+                <a class="nav-link text-danger" href="#" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="connection-status bg-info text-white">
+        Connecting to blockchain...
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Voter Information -->
+        <div class="voter-info mb-4">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4><i class="fas fa-user-circle me-2"></i>Voter Information</h4>
+                    <p class="mb-1"><strong>Name:</strong> <span id="voterInfoName">Loading...</span></p>
+                    <p class="mb-1"><strong>ID:</strong> <span id="voterInfoId">Loading...</span></p>
+                    <p class="mb-0"><strong>Address:</strong> <span id="voterInfoAddress" class="text-monospace">Loading...</span></p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1"><strong>Status:</strong> <span id="voterStatus" class="badge bg-success">Active</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Elections Section -->
+        <div id="elections-section">
+            <h4 class="mb-4"><i class="fas fa-vote-yea me-2"></i>Available Elections</h4>
+            <div id="electionsList">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading elections...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading available elections...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results-section">
+            <h4 class="mb-4"><i class="fas fa-chart-bar me-2"></i>Election Results</h4>
+            <div id="resultsList">
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading results...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading election results...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.5.2/dist/web3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/config.js"></script>
+    <script>
+        let web3;
+        let contract;
+        let account;
+
+        // Check if voter is logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const voterInfo = JSON.parse(localStorage.getItem('voterInfo'));
+            if (!voterInfo) {
+                window.location.href = 'voter_login.html';
+                return;
+            }
+
+            // Update voter information
+            document.getElementById('voterName').textContent = voterInfo.name;
+            document.getElementById('voterInfoName').textContent = voterInfo.name;
+            document.getElementById('voterInfoId').textContent = voterInfo.id;
+            document.getElementById('voterInfoAddress').textContent = voterInfo.address;
+
+            // Initialize Web3 and load elections
+            initializeWeb3();
+
+            // Setup navigation
+            setupNavigation();
+        });
+
+        // Setup navigation
+        function setupNavigation() {
+            const viewElections = document.getElementById('viewElections');
+            const viewResults = document.getElementById('viewResults');
+            const electionsSection = document.getElementById('elections-section');
+            const resultsSection = document.getElementById('results-section');
+
+            viewElections.addEventListener('click', (e) => {
+                e.preventDefault();
+                viewElections.classList.add('active');
+                viewResults.classList.remove('active');
+                electionsSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+                loadAvailableElections();
+            });
+
+            viewResults.addEventListener('click', (e) => {
+                e.preventDefault();
+                viewResults.classList.add('active');
+                viewElections.classList.remove('active');
+                electionsSection.style.display = 'none';
+                resultsSection.style.display = 'block';
+                loadElectionResults();
+            });
+        }
+
+        // Logout function
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('voterInfo');
+            localStorage.removeItem('votingContractAddress');
+            window.location.href = 'voter_login.html';
+        });
+
+        // Initialize Web3
+        async function initializeWeb3() {
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('MetaMask is not installed');
+                }
+
+                web3 = new Web3(window.ethereum);
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                account = accounts[0];
+
+                // Update connection status
+                document.getElementById('connectionStatus').className = 'connection-status bg-success text-white';
+                document.getElementById('connectionStatus').innerHTML = '<i class="fas fa-check-circle me-2"></i>Connected to blockchain';
+
+                // Initialize contract
+                const contractAddress = localStorage.getItem('votingContractAddress');
+                const response = await fetch('./build/contracts/Election.json');
+                const data = await response.json();
+                contract = new web3.eth.Contract(data.abi, contractAddress);
+
+                // Load available elections
+                await loadAvailableElections();
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                document.getElementById('connectionStatus').className = 'connection-status bg-danger text-white';
+                document.getElementById('connectionStatus').innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${error.message}`;
+            }
+        }
+
+        // Load available elections
+        async function loadAvailableElections() {
+            try {
+                const electionCount = await contract.methods.electionCount().call();
+                const electionsList = document.getElementById('electionsList');
+                let html = '';
+
+                for (let i = 1; i <= electionCount; i++) {
+                    const election = await contract.methods.getElection(i).call();
+                    const hasVoted = await contract.methods.checkVoterVoteStatus(i, account).call();
+                    const startTime = new Date(election.startTime * 1000);
+                    const endTime = new Date(election.endTime * 1000);
+                    const now = new Date();
+
+                    let status = '';
+                    let actionButton = '';
+
+                    if (now < startTime) {
+                        status = '<span class="badge bg-warning">Upcoming</span>';
+                    } else if (now > endTime) {
+                        status = '<span class="badge bg-secondary">Ended</span>';
+                    } else if (hasVoted) {
+                        status = '<span class="badge bg-success">Voted</span>';
+                    } else {
+                        status = '<span class="badge bg-primary">Active</span>';
+                        actionButton = `
+                            <button class="btn btn-primary" onclick="viewElection(${i})">
+                                <i class="fas fa-vote-yea me-2"></i>Vote Now
+                            </button>
+                        `;
+                    }
+
+                    html += `
+                        <div class="election-card">
+                            <div class="card-header">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">${election.name}</h5>
+                                    ${status}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <p>${election.description}</p>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <small class="text-muted">Start: ${startTime.toLocaleString()}</small>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <small class="text-muted">End: ${endTime.toLocaleString()}</small>
+                                    </div>
+                                </div>
+                                ${actionButton}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                if (html === '') {
+                    html = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No active elections available at the moment.
+                        </div>
+                    `;
+                }
+
+                electionsList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading elections:', error);
+                document.getElementById('electionsList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading elections: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Load election results
+        async function loadElectionResults() {
+            try {
+                const electionCount = await contract.methods.electionCount().call();
+                const resultsList = document.getElementById('resultsList');
+                let html = '';
+
+                for (let i = 1; i <= electionCount; i++) {
+                    const election = await contract.methods.getElection(i).call();
+                    const endTime = new Date(election.endTime * 1000);
+                    const now = new Date();
+
+                    // Only show results for ended elections
+                    if (now > endTime) {
+                        const candidateCount = election.candidateCount;
+                        let candidatesHtml = '';
+                        let totalVotes = 0;
+                        let candidates = [];
+
+                        // Get all candidates and their vote counts
+                        for (let j = 1; j <= candidateCount; j++) {
+                            try {
+                                const candidate = await contract.methods.getCandidate(i, j).call();
+                                if (candidate.name !== '') { // Skip deleted candidates
+                                    totalVotes += parseInt(candidate.voteCount);
+                                    candidates.push(candidate);
+                                }
+                            } catch (error) {
+                                console.error(`Error loading candidate ${j} for election ${i}:`, error);
+                            }
+                        }
+
+                        // Sort candidates by vote count in descending order
+                        candidates.sort((a, b) => parseInt(b.voteCount) - parseInt(a.voteCount));
+
+                        // Generate candidate results
+                        candidates.forEach(candidate => {
+                            const percentage = totalVotes > 0 ? (candidate.voteCount / totalVotes * 100).toFixed(2) : 0;
+                            const isWinner = candidate === candidates[0] && totalVotes > 0;
+                            
+                            candidatesHtml += `
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div>
+                                            <span class="fw-bold">${candidate.name}</span>
+                                        </div>
+                                        <span>${candidate.voteCount} votes (${percentage}%)</span>
+                                    </div>
+                                    <div class="progress" style="height: 25px;">
+                                        <div class="progress-bar ${isWinner ? 'bg-success' : ''}" 
+                                             role="progressbar" 
+                                             style="width: ${percentage}%"
+                                             aria-valuenow="${percentage}" 
+                                             aria-valuemin="0" 
+                                             aria-valuemax="100">
+                                            ${percentage}%
+                                        </div>
+                                    </div>
+                                    ${isWinner ? '<span class="badge bg-success ms-2">Winner</span><span class="ms-2 text-success fw-bold"> Congratulations! ' + candidate.name + ' is the winner</span>' : ''}
+                                </div>
+                            `;
+                        });
+
+                        html += `
+                            <div class="results-card mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 class="mb-0">${election.name}</h5>
+                                    <span class="badge bg-secondary">Ended</span>
+                                </div>
+                                <p class="text-muted mb-4">${election.description}</p>
+                                <div class="results-content">
+                                    ${candidatesHtml}
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-3 text-muted">
+                                    <small>Total Votes: ${totalVotes}</small>
+                                    <small>Ended: ${endTime.toLocaleString()}</small>
+                                </div>
+                            </div>
+                        `;
+                    }
+                }
+
+                if (html === '') {
+                    html = `
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No completed elections to show results.
+                        </div>
+                    `;
+                }
+
+                resultsList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading results:', error);
+                document.getElementById('resultsList').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Error loading election results: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // View election function
+        function viewElection(electionId) {
+            localStorage.setItem('selectedElection', electionId);
+            window.location.href = 'vote.html';
+        }
+    </script>
+</body>
+</html> 

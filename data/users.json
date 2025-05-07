@@ -1,0 +1,20 @@
+{
+    "admins": [
+        {
+            "username": "admin",
+            "password": "admin123"
+        }
+    ],
+    "voters": [
+        {
+            "username": "voter1",
+            "password": "voter123",
+            "ethereumAddress": "0x0987654321098765432109876543210987654321"
+        },
+        {
+            "username": "voter2",
+            "password": "voter123",
+            "ethereumAddress": "0x2468135790246813579024681357902468135790"
+        }
+    ]
+} 
